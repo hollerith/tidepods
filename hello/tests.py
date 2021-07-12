@@ -2,7 +2,6 @@ from django.contrib.auth.models import AnonymousUser, User
 from django.test import TestCase, RequestFactory
 
 from .views import index
-from .specs import TrackingRequestXML
 
 class SimpleTest(TestCase):
     def setUp(self):
@@ -18,60 +17,34 @@ class SimpleTest(TestCase):
         response = index(request)
         self.assertEqual(response.status_code, 200)
 
-    def test_weather(self):
-        """
-        Check the weather 
-        """
-        import requests
-
-        url="https://wsbeta.fedex.com:443/web-services"
-        #headers = {'content-type': 'application/soap+xml'}
-        headers = {'content-type': 'text/xml'}
-        body = """<?xml version="1.0" encoding="UTF-8"?>
-         <SOAP-ENV:Envelope xmlns:ns0="http://ws.cdyne.com/WeatherWS/" xmlns:ns1="http://schemas.xmlsoap.org/soap/envelope/" 
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-            <SOAP-ENV:Header/>
-              <ns1:Body><ns0:GetWeatherInformation/></ns1:Body>
-         </SOAP-ENV:Envelope>"""
-
-        response = requests.post(url,data=body,headers=headers)
-        print(response.content)
-
     def test_tracking(self):
         """
         Check the service 
         """
         import requests
 
-        url="https://wsbeta.fedex.com:443/web-services"
+        url = "https://wsbeta.fedex.com:443/web-services"
         headers = {'content-type': 'application/soap+xml'}
-        #headers = {'content-type': 'text/xml'}
-        
-        ParentCredentialKey = ""
-        ParentCredentialPassword = ""
-        UserCredentialKey = ""
-        UserCredentialPassword = ""
-        AccountNumber = ""
-        MeterNumber = ""
-        TrackingNumber = ""
-        
-        body = f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v14="http://fedex.com/ws/track/v14">
+        tracking_number = "122816215025810"
+
+        body = \
+f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v14="http://fedex.com/ws/track/v14">
    <soapenv:Header/>
    <soapenv:Body>
       <v14:TrackRequest>
          <v14:WebAuthenticationDetail>
             <v14:ParentCredential>
-               <v14:Key>{ ParentCredentialKey }</v14:Key>
-               <v14:Password>{ ParentCredentialPassword }</v14:Password>
+               <v14:Key>HicUfijJZSUAtqAG</v14:Key>
+               <v14:Password>2IX4AJyvWW9WltylOvw3RokcN</v14:Password>
             </v14:ParentCredential>
             <v14:UserCredential>
-               <v14:Key>{ UserCredentialKey }</v14:Key>
-               <v14:Password>{ UserCredentialPassword }</v14:Password>
+               <v14:Key>mIAfOSJ0e32Zc4oV</v14:Key>
+               <v14:Password>gvTG2nBBVKwZq9dWJnBnJ7rVH</v14:Password>
             </v14:UserCredential>
          </v14:WebAuthenticationDetail>
          <v14:ClientDetail>
-            <v14:AccountNumber>{ AccountNumber }</v14:AccountNumber>
-            <v14:MeterNumber>{ MeterNumber }</v14:MeterNumber>
+            <v14:AccountNumber>602091147</v14:AccountNumber>
+            <v14:MeterNumber>118785166</v14:MeterNumber>
          </v14:ClientDetail>
          <v14:TransactionDetail>
             <v14:CustomerTransactionId>Track By Number_v14</v14:CustomerTransactionId>
@@ -90,7 +63,7 @@ class SimpleTest(TestCase):
             <v14:CarrierCode>FDXE</v14:CarrierCode>
             <v14:PackageIdentifier>
                <v14:Type>TRACKING_NUMBER_OR_DOORTAG</v14:Type>
-               <v14:Value>{ TrackingNumber }</v14:Value>
+               <v14:Value>{ tracking_number }</v14:Value>
             </v14:PackageIdentifier>           
             <v14:ShipmentAccountNumber/>
             <v14:SecureSpodAccount/>
@@ -102,5 +75,6 @@ class SimpleTest(TestCase):
    </soapenv:Body>
 </soapenv:Envelope>"""
 
-        response = requests.post(url,data=body,headers=headers)
+        response = requests.post(url, data=body, headers=headers)
+        self.assertEqual(response.status_code, 200)
         print(response.content)
