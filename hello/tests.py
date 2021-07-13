@@ -3,6 +3,12 @@ from django.test import TestCase, RequestFactory
 
 from .views import index
 
+from types import SimpleNamespace
+
+import requests
+import xmltodict
+import json
+
 class SimpleTest(TestCase):
     def setUp(self):
         # Every test needs access to the request factory.
@@ -21,7 +27,6 @@ class SimpleTest(TestCase):
         """
         Check the service 
         """
-        import requests
 
         url = "https://wsbeta.fedex.com:443/web-services"
         headers = {'content-type': 'application/soap+xml'}
@@ -78,3 +83,17 @@ f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
         response = requests.post(url, data=body, headers=headers)
         self.assertEqual(response.status_code, 200)
         print(response.content)
+
+    def test_canned(self):
+        """
+        Check the canned response  
+        """
+        
+        with open('./hello/static/response.xml', 'r') as fi: 
+            data = fi.read()
+
+        data = xmltodict.parse(data)
+        dota = json.loads(json.dumps(data))
+
+        TrackDetails = SimpleNamespace(**dota["SOAP-ENV:Envelope"]['SOAP-ENV:Body']['TrackReply']['CompletedTrackDetails']['TrackDetails'])
+

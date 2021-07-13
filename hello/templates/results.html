@@ -3,8 +3,17 @@
 
 {% block content %}
 <div class="container">
+    {% if error_message %}
+    <div class="alert alert-info text-center" role="alert" id='error_message'>
+        {{ error_message }}
+    </div>
+    {% endif %}
+
     <pre style='white-space: pre-wrap;'>
     {{ results }}
+    </pre>
+    <pre style='white-space: pre-wrap;'>
+    {{ json_data }}
     </pre>
  </div>
 {% endblock %}
