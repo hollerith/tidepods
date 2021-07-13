@@ -89,7 +89,7 @@ f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
 
             TrackDetails = SimpleNamespace(**data["SOAP-ENV:Envelope"]['SOAP-ENV:Body']['TrackReply']['CompletedTrackDetails']['TrackDetails'])
 
-            if TrackDetails.Notification['Severity'] == 'ERROR':
+            if TrackDetails.Notification['Severity'] in ('ERROR', 'FAILURE'):
                 context = {
                     "results": response.text,
                     "json_data": data,
@@ -122,5 +122,10 @@ f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
                     }
                 ]
             }
+            context = {
+                "results": response.text,
+                "json_data": apijson,
+            }
+            return render(request, "results.html", context)
             
         return render(request, "results.html", {"results": response.text, "json": json})
