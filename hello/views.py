@@ -29,7 +29,7 @@ def search(request):
     if request.POST:
         url = "https://wsbeta.fedex.com:443/web-services"
         headers = {'content-type': 'application/soap+xml'}
-        tracking_number = "122816215025810"
+        tracking_number = request.POST["tracking_number"]
 
         body = \
 f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v14="http://fedex.com/ws/track/v14">
