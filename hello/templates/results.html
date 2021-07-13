@@ -12,8 +12,10 @@
     <pre style='white-space: pre-wrap;'>
     {{ results }}
     </pre>
+    {% if json_data %}
     <pre style='white-space: pre-wrap;'>
     {{ json_data }}
     </pre>
+    {% endif %}
  </div>
 {% endblock %}

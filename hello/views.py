@@ -27,7 +27,6 @@ def db(request):
 def search(request):
 
     if request.POST:
-
         url = "https://wsbeta.fedex.com:443/web-services"
         headers = {'content-type': 'application/soap+xml'}
         tracking_number = "122816215025810"
@@ -127,5 +126,9 @@ f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
                 "json_data": apijson,
             }
             return render(request, "results.html", context)
-            
-        return render(request, "results.html", {"results": response.text, "json": json})
+
+        context = {
+            "results": response.text,
+            "error_message" : response.reason
+        }
+        return render(request, "results.html", context)
