@@ -38,9 +38,14 @@ def search(request):
             with open(cached_file) as fi: data = fi.read()
             response = MockResponse(data, 200)
         else:
+            parent_key = settings.PARENT_KEY
+            parent_pass = settings.PARENT_PASS
+            user_key = settings.USER_KEY
+            user_pass = settings.USER_PASS
+            
             url = "https://wsbeta.fedex.com:443/web-services"
             headers = {'content-type': 'application/soap+xml'}
-            body = TrackRequest % tracking_number
+            body = TrackRequest % (parent_key, parent_pass, user_key, user_pass , tracking_number)
             response = requests.post(url, data=body, headers=headers)
 
         if response.status_code == 200:
