@@ -1,13 +1,16 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.conf import settings
 
+# Create your views here.
 from .models import Greeting
+from .constants import TrackingStatus, TrackRequest
 
+import os
 import json
 import xmltodict
 from types import SimpleNamespace
 
-# Create your views here.
 import requests
 
 def index(request):
@@ -27,108 +30,140 @@ def db(request):
 def search(request):
 
     if request.POST:
-        url = "https://wsbeta.fedex.com:443/web-services"
-        headers = {'content-type': 'application/soap+xml'}
         tracking_number = request.POST["tracking_number"]
 
-        body = \
-f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v14="http://fedex.com/ws/track/v14">
-    <soapenv:Header/>
-    <soapenv:Body>
-        <v14:TrackRequest>
-            <v14:WebAuthenticationDetail>
-                <v14:ParentCredential>
-                    <v14:Key>HicUfijJZSUAtqAG</v14:Key>
-                    <v14:Password>2IX4AJyvWW9WltylOvw3RokcN</v14:Password>
-                </v14:ParentCredential>
-                <v14:UserCredential>
-                    <v14:Key>mIAfOSJ0e32Zc4oV</v14:Key>
-                    <v14:Password>gvTG2nBBVKwZq9dWJnBnJ7rVH</v14:Password>
-                </v14:UserCredential>
-            </v14:WebAuthenticationDetail>
-            <v14:ClientDetail>
-                <v14:AccountNumber>602091147</v14:AccountNumber>
-                <v14:MeterNumber>118785166</v14:MeterNumber>
-            </v14:ClientDetail>
-            <v14:TransactionDetail>
-                <v14:CustomerTransactionId>Track By Number_v14</v14:CustomerTransactionId>
-                <v14:Localization>
-                    <v14:LanguageCode>EN</v14:LanguageCode>
-                    <v14:LocaleCode>US</v14:LocaleCode>
-                </v14:Localization>
-            </v14:TransactionDetail>
-            <v14:Version>
-                <v14:ServiceId>trck</v14:ServiceId>
-                <v14:Major>14</v14:Major>
-                <v14:Intermediate>0</v14:Intermediate>
-                <v14:Minor>0</v14:Minor>
-            </v14:Version>
-            <v14:SelectionDetails>
-                <v14:CarrierCode>FDXE</v14:CarrierCode>
-                <v14:PackageIdentifier>
-                   <v14:Type>TRACKING_NUMBER_OR_DOORTAG</v14:Type>
-                   <v14:Value>{ tracking_number }</v14:Value>
-                </v14:PackageIdentifier>           
-                <v14:ShipmentAccountNumber/>
-                <v14:SecureSpodAccount/>
-                  <v14:Destination>
-                   <v14:GeographicCoordinates>rates evertitque aequora</v14:GeographicCoordinates>
-                </v14:Destination>
-            </v14:SelectionDetails>
-        </v14:TrackRequest>
-    </soapenv:Body>
-</soapenv:Envelope>"""
-
-        response = requests.post(url, data=body, headers=headers)
+        # If the tracking number is cached 
+        cached_file = os.path.join(settings.MEDIA_ROOT, f"{tracking_number}.xml")
+        if os.path.isfile(cached_file):
+            with open(cached_file) as fi: data = fi.read()
+            response = MockResponse(data, 200)
+        else:
+            url = "https://wsbeta.fedex.com:443/web-services"
+            headers = {'content-type': 'application/soap+xml'}
+            body = TrackRequest % tracking_number
+            response = requests.post(url, data=body, headers=headers)
 
         if response.status_code == 200:
-                       
+
             data = xmltodict.parse(response.content)
             data = json.loads(json.dumps(data))
 
-            TrackDetails = SimpleNamespace(**data["SOAP-ENV:Envelope"]['SOAP-ENV:Body']['TrackReply']['CompletedTrackDetails']['TrackDetails'])
-
-            if TrackDetails.Notification['Severity'] in ('ERROR', 'FAILURE'):
+            trackreply = TrackReply(data)
+            if trackreply.TrackReply.HighestSeverity == "SUCCESS":
+                if trackreply.severity in ('ERROR', 'FAILURE'):
+                    context = {
+                        "results": response.content,
+                        "json_data": [],
+                        "error_message" : trackreply.message
+                    }
+                    return render(request, "results.html", context)
+                else:
+                    context = {
+                        "results": response.content,
+                        "json_data": trackreply.api_track,
+                    }
+                    return render(request, "results.html", context)
+            else:
                 context = {
                     "results": response.text,
-                    "json_data": data,
-                    "error_message" : TrackDetails.Notification['Message']
+                    "json_data": [],
+                    "error_message": trackreply.message
                 }
                 return render(request, "results.html", context)
-
-            if TrackDetails.DatesOrTimes["Type"] == "ANTICIPATED_TENDER":
-                estimated_delivery = TrackDetails.DatesOrTimes['DateOrTimeStamp']
-
-            delivered = True
-            delivery_date = "2021-06-07T00:00:00.000Z"
-            status = "Delivered to a mailbox"
-            tracking_stage = "DELIVERED"
-
-            apijson = {
-                "carrier": "fedex",
-                "delivered": delivered,
-                "estimated_delivery": estimated_delivery,
-                "delivery_date": delivery_date,
-                "tracking_number": tracking_number,
-                "status": status,
-                "tracking_stage": tracking_stage,
-                "checkpoints": [
-                    {
-                    "description": "Delivered to a mailbox",
-                    "status": "Delivered to a mailbox",
-                    "tracking_stage": "DELIVERED",
-                    "time": "2021-06-07T10:46:07.000+1000"
-                    }
-                ]
-            }
-            context = {
-                "results": response.text,
-                "json_data": apijson,
-            }
-            return render(request, "results.html", context)
 
         context = {
             "results": response.text,
             "error_message" : response.reason
         }
         return render(request, "results.html", context)
+
+# have to mock responses here because the service
+# is not responding at all at the moment to valid requests
+class MockResponse:
+    def __init__(self, content, status_code):
+        self.content = content
+        self.text = content
+        self.status_code = status_code
+
+    def content(self):
+        return self.content
+
+    def json(self):
+        return self.content
+
+class TrackReply:
+    def __init__(self, data):
+
+        self.TrackReply = SimpleNamespace(**data["SOAP-ENV:Envelope"]['SOAP-ENV:Body']['TrackReply'])
+    
+        if self.TrackReply.HighestSeverity == "SUCCESS":
+
+            self.TrackDetails = SimpleNamespace(**data["SOAP-ENV:Envelope"]['SOAP-ENV:Body']['TrackReply']['CompletedTrackDetails']['TrackDetails']) 
+
+            self.severity = self.TrackDetails.Notification['Severity']
+            self.message = self.TrackDetails.Notification['Message'] 
+            if self.severity == "SUCCESS":
+                self.code = self.TrackDetails.StatusDetail['Code'] 
+
+                self.carrier = "fedex" # Multiple codes... FXDE so?
+                self.delivered, self.delivery_date = self.getDelivered()
+                self.estimated_delivery = self.getEstimatedDelivery()
+                self.tracking_number = self.TrackDetails.TrackingNumber 
+                self.status = self.TrackDetails.StatusDetail['Description'] 
+                self.tracking_stage = TrackingStatus[self.code]
+                self.checkpoints = self.getCheckpoints()
+
+                self.api_track = self.getTrack()
+        else:
+            self.message = TrackReply.Notifications['Message']
+        
+    def getDelivered(self):
+        if self.TrackDetails.StatusDetail['Code'] == 'DL':
+            return (True, self.TrackDetails.StatusDetail['CreationTime'])
+        else:
+            return (False, "")
+
+    def getEstimatedDelivery(self):
+        try:
+            if self.TrackDetails.DatesOrTimes["Type"] == "ESTIMATED_DELIVERY":
+                return self.TrackDetails.DatesOrTimes['DateOrTimeStamp']
+        except:
+            pass # old schema
+
+    def getCheckpoints(self):
+        checkpoints = []
+        events = self.TrackDetails.Events
+        if type(events) != list: events = [events]
+
+        # format_dates()
+        # 2021-06-07T10:46:07+06:00 --> "2021-06-07T10:46:07.000+1000"
+        events.reverse()
+        for event in events:
+            event_type = event['EventType']
+
+            if event_type == 'DL':
+                self.delivered = True
+                self.delivery_date = event['Timestamp']
+
+            checkpoints.append({
+                "description": event['EventDescription'],
+                "status": event['EventDescription'],
+                "tracking_stage": TrackingStatus[event_type],
+                "time": event['Timestamp'] 
+            })
+        return checkpoints
+    
+    def getTrack(self):
+
+        ugly = {
+            "carrier": self.carrier,
+            "delivered": self.delivered,
+            "estimated_delivery": self.estimated_delivery,
+            "delivery_date": self.delivery_date,
+            "tracking_number": self.tracking_number,
+            "status": self.status,
+            "tracking_stage": self.tracking_stage,
+            "checkpoints": self.checkpoints
+        } 
+        return json.dumps(ugly, indent=4)
+    
