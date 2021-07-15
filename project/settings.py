@@ -22,13 +22,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "CHANGE_ME!!!! (P.S. the SECRET_KEY environment variable will be used, if set, instead)."
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -119,6 +118,14 @@ STATIC_URL = "/static/"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Tracking account
+PARENT_KEY = os.getenv('PARENT_KEY')
+PARENT_PASS = os.getenv('PARENT_PASS')
+USER_KEY = os.getenv('USER_KEY')
+USER_PASS = os.getenv('USER_PASS')
+
+print(PARENT_KEY, PARENT_PASS)
 
 django_heroku.settings(locals())
 

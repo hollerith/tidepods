@@ -4,12 +4,12 @@ TrackRequest = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/so
         <v14:TrackRequest>
             <v14:WebAuthenticationDetail>
                 <v14:ParentCredential>
-                    <v14:Key>HicUfijJZSUAtqAG</v14:Key>
-                    <v14:Password>2IX4AJyvWW9WltylOvw3RokcN</v14:Password>
+                    <v14:Key>%s</v14:Key>
+                    <v14:Password>%s</v14:Password>
                 </v14:ParentCredential>
                 <v14:UserCredential>
-                    <v14:Key>mIAfOSJ0e32Zc4oV</v14:Key>
-                    <v14:Password>gvTG2nBBVKwZq9dWJnBnJ7rVH</v14:Password>
+                    <v14:Key>%s</v14:Key>
+                    <v14:Password>%s</v14:Password>
                 </v14:UserCredential>
             </v14:WebAuthenticationDetail>
             <v14:ClientDetail>
